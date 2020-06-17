@@ -28,11 +28,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.bitcoindotcom.bchprocessor.bip70.model.Bip70Action
+import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 
 class TransactionsHistoryFragment : ToolbarAwareFragment() {
+    private var todaysSales: Double = 0.0
     private lateinit var adapter: TransactionAdapter
     private lateinit var listView: ListView
     private lateinit var noTxHistoryLv: LinearLayout
@@ -162,12 +164,32 @@ class TransactionsHistoryFragment : ToolbarAwareFragment() {
                 adapter.reset(txs)
                 if (txs.size != 0) {
                     setTxListVisibility(true)
+                    setTodaysSales(txs)
                 }
             }
             if (queryServer) {
                 requestToDownloadAllTx()
             }
         }
+    }
+
+    private fun setTodaysSales(txs: ArrayList<ContentValues>) {
+        val sdf = SimpleDateFormat("ddMMyyyy", Locale.getDefault())
+        val currentDate = sdf.format(Date())
+        for(x in txs.indices) {
+            val paymentRecord = txs[x].toPaymentRecord()
+            val txDate = sdf.format(Date(paymentRecord.timeInSec*1000))
+            if(txDate == currentDate) {
+                val txAmount = paymentRecord.fiatAmount?.toDouble()
+                if (txAmount != null) {
+                    todaysSales += txAmount
+                }
+            }
+        }
+    }
+
+    private fun getTodaysSales(): Double {
+        return todaysSales
     }
 
     private inner class TransactionAdapter internal constructor() : BaseAdapter() {
